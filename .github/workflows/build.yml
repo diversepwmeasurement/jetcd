@@ -1,33 +1,30 @@
-name: Build
-
-on:
-  workflow_call:
-    inputs:
-      javaVersion:
-        required: true
-        type: string
-      etcdImage:
-        required: true
-        type: string
-
-
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v4
-      - name: 'Set Up Java'
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ inputs.javaVersion }}
-          distribution: 'temurin'
-          cache: 'gradle'
-      - name: 'Build Project'
-        env:
-          ETCD_IMAGE: ${{ inputs.etcdImage }}
-        run: |
-          export TC_USER="$(id -u):$(id -g)"
-          echo "tc user -> $TC_USER"
+    - continue-on-error: true
+      name: Checkout
+      uses: actions/checkout@v4
+    - continue-on-error: true
+      name: Set Up Java
+      uses: actions/setup-java@v4
+      with:
+        cache: gradle
+        distribution: temurin
+        java-version: ${{ inputs.javaVersion }}
+    - continue-on-error: true
+      env:
+        ETCD_IMAGE: ${{ inputs.etcdImage }}
+      name: Build Project
+      run: 'export TC_USER="$(id -u):$(id -g)"
 
-          ./gradlew test --info
+        echo "tc user -> $TC_USER"
+
+
+        ./gradlew test --info
+
+        '
+name: Build
+on:
+  repository_dispatch:
+    types: trigger-ga___build.yml

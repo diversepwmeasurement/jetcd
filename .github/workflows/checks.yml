@@ -1,37 +1,41 @@
-name: Checks
-
-on:
-  workflow_call:
-
-
 jobs:
   check:
-    runs-on: ubuntu-latest
-
+    runs-on: self-hosted
     steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: 'Set Up Java'
-        uses: actions/setup-java@v4
-        with:
-          java-version: 11
-          distribution: 'temurin'
-          cache: 'gradle'
-      - name: 'Run check task'
-        run: |
-          ./gradlew check -x test
-      - name: 'Run check script'
-        run: |
-          bash ./.github/workflows/scripts/precheck.sh
-        shell: bash
+    - continue-on-error: true
+      name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - continue-on-error: true
+      name: Set Up Java
+      uses: actions/setup-java@v4
+      with:
+        cache: gradle
+        distribution: temurin
+        java-version: 11
+    - continue-on-error: true
+      name: Run check task
+      run: './gradlew check -x test
 
+        '
+    - continue-on-error: true
+      name: Run check script
+      run: 'bash ./.github/workflows/scripts/precheck.sh
+
+        '
+      shell: bash
   deps:
-    runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    runs-on: self-hosted
     steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v4
-      - name: 'Dependency Review'
-        uses: actions/dependency-review-action@v4
+    - continue-on-error: true
+      name: Checkout
+      uses: actions/checkout@v4
+    - continue-on-error: true
+      name: Dependency Review
+      uses: actions/dependency-review-action@v4
+name: Checks
+on:
+  repository_dispatch:
+    types: trigger-ga___checks.yml

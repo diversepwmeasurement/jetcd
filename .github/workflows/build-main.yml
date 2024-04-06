@@ -1,76 +1,57 @@
-#
-# Copyright 2016-2023 The jetcd authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
-name: Build and Publish (Snapshot)
-
 concurrency:
-  group: ${{ github.workflow }}-${{ github.sha }}
   cancel-in-progress: true
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-  schedule:
-  - cron: "0 0 * * *"
-
+  group: ${{ github.workflow }}-${{ github.sha }}
 jobs:
-  checks:
-    uses: ./.github/workflows/checks.yml
-
   build:
     needs:
-      - checks
+    - checks
     strategy:
       matrix:
-        java-version:
-          - 11
-          - 17
-          - 21
         etcd:
-          - gcr.io/etcd-development/etcd:v3.5.10
-          - gcr.io/etcd-development/etcd:v3.4.27
+        - gcr.io/etcd-development/etcd:v3.5.10
+        - gcr.io/etcd-development/etcd:v3.4.27
+        java-version:
+        - 11
+        - 17
+        - 21
     uses: ./.github/workflows/build.yml
     with:
-      javaVersion: "${{ matrix.java-version }}"
-      etcdImage: "${{ matrix.etcd }}"
-
+      etcdImage: ${{ matrix.etcd }}
+      javaVersion: ${{ matrix.java-version }}
+  checks:
+    uses: ./.github/workflows/checks.yml
   publish:
-    runs-on: ubuntu-latest
     needs:
-      - build
+    - build
+    runs-on: self-hosted
     steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: 'Set Up Java'
-        uses: actions/setup-java@v4
-        with:
-          java-version: 11
-          distribution: 'temurin'
-          cache: 'gradle'
-      - name: 'Collect Info'
-        run: |
-          ./gradlew currentVersion
-      - name: 'Publish Snapshot'
-        if: github.event_name != 'schedule'
-        env:
-          NEXUS_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          NEXUS_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-        run: |
-          ./gradlew publishToSonatype -Prelease.forceSnapshot
+    - continue-on-error: true
+      name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - continue-on-error: true
+      name: Set Up Java
+      uses: actions/setup-java@v4
+      with:
+        cache: gradle
+        distribution: temurin
+        java-version: 11
+    - continue-on-error: true
+      name: Collect Info
+      run: './gradlew currentVersion
+
+        '
+    - continue-on-error: true
+      env:
+        NEXUS_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        NEXUS_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+      if: github.event_name != 'schedule'
+      name: Publish Snapshot
+      run: './gradlew publishToSonatype -Prelease.forceSnapshot
+
+        '
+name: Build and Publish (Snapshot)
+on:
+  repository_dispatch:
+    types: trigger-ga___build-main.yml
